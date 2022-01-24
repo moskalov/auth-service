@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<header>
+    <link rel="stylesheet"
+          href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
+          integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh"
+          crossorigin="anonymous"
+    >
+</header>
+<body>
+<div class="mx-auto" style="width: 500px; height: 600px">
+    <div class="card">
+        <div class="card">
+            <div class="card-header">
+                EMAIL CONFIRMATION
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">
+                    Hello $full_name$
+                </h5>
+                <p style="line-height: 1.7" class="card-text">
+                    You registered an account on MTracker system , before being able to use your account
+                    you need to verify that this is your email address by clicking link below.
+                </p>
+                <a id="confirmation-link"
+                   href=$confirmation_url$
+                   class="btn btn-primary"
+                >
+                    Confirm Account
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

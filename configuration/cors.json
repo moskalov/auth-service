@@ -1,0 +1,20 @@
+{
+  "allowedMethods": [
+    "HEAD",
+    "GET",
+    "PUT",
+    "POST",
+    "DELETE",
+    "PATCH"
+  ],
+  "allowedOrigins": [
+    "http://192.168.33.71:3000",
+    "http://localhost:3000"
+  ],
+  "allowedHeader": [
+    "Authorization",
+    "Cache-Control",
+    "Content-Type"
+  ],
+  "allowedCredentials": true
+}

@@ -1,0 +1,12 @@
+{
+  "access": {
+    "secret": "secret",
+    "expirationAfterMs": 1800000,
+    "prefix": "Bearer"
+  },
+  "refresh": {
+    "secret": "secret",
+    "expirationAfterMs": 604800000,
+    "prefix": "Bearer"
+  }
+}
