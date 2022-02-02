@@ -1,9 +1,6 @@
 package lv.redsails.authservice.config;
 
-import lv.redsails.authservice.properties.ExternalPropertiesLoader;
-import lv.redsails.authservice.properties.JwtTokenProperties;
-import lv.redsails.authservice.properties.ApplicationProperties;
-import lv.redsails.authservice.properties.CorsProperties;
+import lv.redsails.authservice.properties.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.event.ApplicationEventMulticaster;
@@ -34,6 +31,7 @@ public class AppConfig {
         properties.put(ApplicationProperties.class, "application.json");
         properties.put(CorsProperties.class, "cors.json");
         properties.put(JwtTokenProperties.class, "jwt-token.json");
+        properties.put(DatabaseProperties.class, "database.json");
         loader.registerProperties(properties);
     }
 
