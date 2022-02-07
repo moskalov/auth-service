@@ -62,7 +62,8 @@ class ConfirmEmailMessageGeneratorTest {
 
     private Map<String, String> getInsertedDataInTemplate(MimeMessage message) throws MessagingException, IOException {
         InputStream inputStream = message.getInputStream();
-        TypeReference<HashMap<String, String>> typeRef = new TypeReference<>() {};
+        TypeReference<HashMap<String, String>> typeRef = new TypeReference<>() {
+        };
         return mapper.readValue(inputStream, typeRef);
     }
 
