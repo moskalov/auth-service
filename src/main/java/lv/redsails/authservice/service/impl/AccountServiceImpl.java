@@ -4,19 +4,21 @@ import lombok.AllArgsConstructor;
 import lv.redsails.authservice.domain.ConfirmationToken;
 import lv.redsails.authservice.domain.User;
 import lv.redsails.authservice.email.EmailMessageGenerator;
-import lv.redsails.authservice.exception.authentication.ConfirmationTokenExpired;
+import lv.redsails.authservice.exception.token.TokenNotValidException;
 import lv.redsails.authservice.repository.ConfirmationTokenRepository;
 import lv.redsails.authservice.repository.UserRepository;
 import lv.redsails.authservice.security.model.PasswordEncoder;
 import lv.redsails.authservice.service.AccountService;
 import org.springframework.mail.javamail.JavaMailSender;
 
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.mail.internet.MimeMessage;
-import javax.persistence.EntityNotFoundException;
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 
@@ -24,26 +26,25 @@ import java.util.UUID;
 @AllArgsConstructor
 public class AccountServiceImpl implements AccountService {
     private final UserRepository userRepository;
-    private final ConfirmationTokenRepository confirmationTokenRepository;
+    private final ConfirmationTokenRepository tokenRepository;
 
-    private final PasswordEncoder passwordEncoder;
     private final JavaMailSender mailSender;
-
-    private final EmailMessageGenerator messageGenerator = new EmailMessageGenerator();
+    private final EmailMessageGenerator messageGenerator;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     @Transactional
-    public void sendConfirmationEmail(String email, String confirmUrl) {
-        ConfirmationToken token = createConfirmationToken();
-        User user = userRepository.findByEmail(email).orElseThrow(EntityNotFoundException::new);
-        MimeMessage mimeMessage = generateEmailConfirmationMessage(user, token, confirmUrl);
-        saveConfirmationTokenToUser(user, token);
+    public void sendConfirmationEmail(String recipientEmail, String confirmUrl) {
+        ConfirmationToken confirmationToken = createConfirmationToken();
+        User user = userRepository.findByEmail(recipientEmail).orElseThrow(TokenNotValidException::new);
+        MimeMessage mimeMessage = generateEmailConfirmationMessage(user, confirmationToken, confirmUrl);
+        saveConfirmationTokenToUser(user, confirmationToken);
         mailSender.send(mimeMessage);
     }
 
     private MimeMessage generateEmailConfirmationMessage(User user, ConfirmationToken token, String confirmUrl) {
         return messageGenerator.generateEmailConfirmationMessage(mailSender)
-                .setClientEmailConfirmUrl(confirmUrl)
+                .setClientAppEmailConfirmUrl(confirmUrl)
                 .setRecipientEmail(user.getEmail())
                 .setFullName(user.getFullName())
                 .setToken(token.getToken())
@@ -52,31 +53,12 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     @Transactional
-    public void sendPasswordResetEmail(String email) {
-        User user = userRepository.findByEmail(email).orElseThrow(EntityNotFoundException::new);
-        ConfirmationToken token = createConfirmationToken();
-
-        if (user.isEnabled()) {
-            saveConfirmationTokenToUser(user, token);
-            MimeMessage passwordResetMessage = generatePasswordResetMessage(user, token);
-            mailSender.send(passwordResetMessage);
-        }
-    }
-
-    private MimeMessage generatePasswordResetMessage(User user, ConfirmationToken token) {
-        return messageGenerator.generatePasswordResetMessage(mailSender)
-                .setRecipientEmail(user.getEmail())
-                .setFullName(user.getFullName())
-                .getMessage();
-    }
-
-    @Override
-    @Transactional
     public void confirmEmailByToken(String token) {
-        ConfirmationToken confirmationToken = confirmationTokenRepository
-                .findByToken(token).orElseThrow(EntityNotFoundException::new);
+        ConfirmationToken confirmationToken = tokenRepository
+                .findByToken(token)
+                .orElseThrow(TokenNotValidException::new);
 
-        throwIfTokenExpired(confirmationToken);
+        throwIfTokenUsedOrExpired(confirmationToken);
         confirmationToken.setConfirmedAt(LocalDateTime.now());
         User user = confirmationToken.getUser();
         enableUser(user);
@@ -89,29 +71,46 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     @Transactional
-    public void confirmPasswordReset(String newPassword, String token) {
-        ConfirmationToken confirmationToken = confirmationTokenRepository
-                .findByToken(token).orElseThrow(EntityNotFoundException::new);
+    public void sendPasswordResetEmail(String recipientEmail, String clientResetUrl) {
+        User user = userRepository.findByEmail(recipientEmail).orElseThrow(() -> new UsernameNotFoundException("USER_NOT_FOUND"));
+        throwIfUserInactive(user);
 
-        throwIfTokenExpired(confirmationToken);
+        ConfirmationToken token = createConfirmationToken();
+        saveConfirmationTokenToUser(user, token);
+        MimeMessage passwordResetMessage = generatePasswordResetMessage(user, token, clientResetUrl);
+        mailSender.send(passwordResetMessage);
+    }
+
+    private void throwIfUserInactive(User user) {
+        if (!user.isEnabled()) throw new DisabledException("USER_INACTIVE");
+    }
+
+    private MimeMessage generatePasswordResetMessage(User user, ConfirmationToken token, String clientResetPageUrl) {
+        return messageGenerator.generatePasswordResetMessage(mailSender)
+                .setPasswordResetUrl(clientResetPageUrl)
+                .setRecipientEmail(user.getEmail())
+                .setFullName(user.getFullName())
+                .setToken(token.getToken())
+                .getMessage();
+    }
+
+    @Override
+    @Transactional
+    public void confirmPasswordReset(String newPassword, String token) {
+        ConfirmationToken confirmationToken = tokenRepository.findByToken(token)
+                .orElseThrow(TokenNotValidException::new);
+        throwIfTokenUsedOrExpired(confirmationToken);
+
         User tokenOwner = confirmationToken.getUser();
         encodePasswordAndReplace(tokenOwner, newPassword);
+        confirmationToken.setConfirmedAt(LocalDateTime.now());
         userRepository.save(tokenOwner);
     }
 
-    private void encodePasswordAndReplace(User user, String rawNewPassword) {
-        String encodedPassword = passwordEncoder.encode(rawNewPassword);
-        user.setPassword(encodedPassword);
-    }
-
-    private void throwIfTokenExpired(ConfirmationToken token) throws ConfirmationTokenExpired {
+    private void throwIfTokenUsedOrExpired(ConfirmationToken token) {
         boolean isExpired = token.getExpiresAt().isBefore(LocalDateTime.now());
-        if (isExpired) throw new ConfirmationTokenExpired("Token has been expired");
-    }
-
-    private void saveConfirmationTokenToUser(User user, ConfirmationToken token) {
-        user.addToken(token);
-        userRepository.save(user);
+        boolean isUsed = Optional.ofNullable(token.getConfirmedAt()).isPresent();
+        if (isUsed || isExpired) throw new TokenNotValidException();
     }
 
     private ConfirmationToken createConfirmationToken() {
@@ -120,6 +119,16 @@ public class AccountServiceImpl implements AccountService {
                 .setCreatedAt(LocalDateTime.now())
                 .setExpiresAt(LocalDateTime.now().plusHours(24))
                 .setToken(tokenValue);
+    }
+
+    private void encodePasswordAndReplace(User user, String rawNewPassword) {
+        String encodedPassword = passwordEncoder.encode(rawNewPassword);
+        user.setPassword(encodedPassword);
+    }
+
+    private void saveConfirmationTokenToUser(User user, ConfirmationToken token) {
+        user.addToken(token);
+        userRepository.save(user);
     }
 
 }

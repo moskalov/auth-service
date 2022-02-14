@@ -18,8 +18,10 @@ public class PasswordResetMessage implements EmailMessage {
 
     @Setter(NONE)
     private MimeMessageHelper messageHelper;
+    private String passwordResetUrl;
     private String recipientEmail;
     private String fullName;
+    private String token;
 
     @Setter(NONE)
     private String textTemplate;
@@ -33,14 +35,16 @@ public class PasswordResetMessage implements EmailMessage {
     @SneakyThrows
     public MimeMessage getMessage() {
         String text = generatePasswordResetMail();
-        messageHelper.setText(text);
+        messageHelper.setText(text, true);
         messageHelper.setTo(recipientEmail);
         return messageHelper.getMimeMessage();
     }
 
     private String generatePasswordResetMail() {
+        String confirmationUrl = passwordResetUrl + "?token=" + token;
         ST body = new ST(textTemplate, '$', '$');
         body.add("full_name", fullName);
+        body.add("reset_password_url", confirmationUrl);
         return body.render();
     }
 

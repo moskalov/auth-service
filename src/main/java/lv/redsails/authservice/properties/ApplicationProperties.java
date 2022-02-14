@@ -6,7 +6,7 @@ import lombok.Data;
 @Data
 public class ApplicationProperties {
 
-    @JsonProperty("isAppFirstStart")
+    @JsonProperty("app_first_start")
     private Boolean isAppFirstStart;
 
 }

@@ -6,12 +6,14 @@ import lv.redsails.authservice.domain.Role;
 import lv.redsails.authservice.domain.User;
 import lv.redsails.authservice.properties.ApplicationProperties;
 import lv.redsails.authservice.properties.ExternalPropertiesLoader;
+import lv.redsails.authservice.security.model.PasswordEncoder;
 import lv.redsails.authservice.service.RolesManagementService;
 import lv.redsails.authservice.service.UserService;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.context.annotation.Bean;
 
 import org.springframework.security.web.FilterChainProxy;
@@ -34,6 +36,7 @@ public class AuthServiceApplication {
             @Qualifier("springSecurityFilterChain") Filter springSecurityFilterChain,
             RolesManagementService rolesService,
             ExternalPropertiesLoader loader,
+            PasswordEncoder encoder,
             UserService userService) {
 
         return args -> {
@@ -44,7 +47,7 @@ public class AuthServiceApplication {
                 List<Role> roles = rolesService.createRoles(defaultRoles);
                 Role adminRole = findAdminRole(roles);
 
-                User defaultAdmin = createDefaultAdmin();
+                User defaultAdmin = createDefaultAdmin(encoder);
                 defaultAdmin.setRoles(Set.of(adminRole));
                 userService.createUser(defaultAdmin);
 
@@ -63,10 +66,10 @@ public class AuthServiceApplication {
         );
     }
 
-    public User createDefaultAdmin() {
+    public User createDefaultAdmin(PasswordEncoder encoder) {
         return new User().setEmail("admin")
                 .setUid(UUID.randomUUID().toString())
-                .setPassword("admin")
+                .setPassword(encoder.encode("admin"))
                 .setEnabled(true);
     }
 

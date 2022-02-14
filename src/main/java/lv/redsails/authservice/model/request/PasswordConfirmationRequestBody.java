@@ -8,7 +8,7 @@ import javax.validation.constraints.NotBlank;
 
 @Data
 @Accessors(chain = true)
-public class PasswordChangeRequestBody {
+public class PasswordConfirmationRequestBody {
 
     @NotBlank
     private String confirmationToken;

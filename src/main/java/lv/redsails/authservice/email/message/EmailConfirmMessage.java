@@ -14,11 +14,11 @@ import static lombok.AccessLevel.*;
 @Setter
 @ToString
 @Accessors(chain = true)
-public class ConfirmEmailMessage implements EmailMessage {
+public class EmailConfirmMessage implements EmailMessage {
 
     @Setter(NONE)
     private MimeMessageHelper messageHelper;
-    private String clientEmailConfirmUrl;
+    private String clientAppEmailConfirmUrl;
     private String recipientEmail;
     private String fullName;
     private String token;
@@ -26,7 +26,7 @@ public class ConfirmEmailMessage implements EmailMessage {
     @Setter(NONE)
     private String textTemplate;
 
-    public ConfirmEmailMessage(MimeMessageHelper helper, String template) {
+    public EmailConfirmMessage(MimeMessageHelper helper, String template) {
         this.messageHelper = helper;
         this.textTemplate = template;
     }
@@ -41,7 +41,7 @@ public class ConfirmEmailMessage implements EmailMessage {
     }
 
     private String generateConfirmationMailHtml() {
-        String confirmationUrl = clientEmailConfirmUrl + "?token=" + token;
+        String confirmationUrl = clientAppEmailConfirmUrl + "?token=" + token;
         ST body = new ST(textTemplate, '$', '$');
         body.add("full_name", fullName);
         body.add("confirmation_url", confirmationUrl);

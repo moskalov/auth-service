@@ -1,5 +1,7 @@
 package lv.redsails.authservice.config;
 
+import lv.redsails.authservice.email.EmailMessageGenerator;
+import lv.redsails.authservice.email.EmailOptions;
 import lv.redsails.authservice.properties.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,7 +22,16 @@ public class AppConfig {
     }
 
     @Bean
-    public ExternalPropertiesLoader configurationLoader() {
+    public EmailMessageGenerator emailMessageGenerator() {
+        ExternalPropertiesLoader loader = getPropertiesLoader();
+        EmailProperties emailProperties = loader.readProperty(EmailProperties.class);
+        EmailOptions emailConfirmOptions = emailProperties.getEmailConfirmationOptions();
+        EmailOptions passwordResetOptions = emailProperties.getPasswordResetOptions();
+        return new EmailMessageGenerator(emailConfirmOptions, passwordResetOptions);
+    }
+
+    @Bean
+    public ExternalPropertiesLoader getPropertiesLoader() {
         ExternalPropertiesLoader loader = new ExternalPropertiesLoader("./configuration");
         registeredProperties(loader);
         return loader;
@@ -32,6 +43,7 @@ public class AppConfig {
         properties.put(CorsProperties.class, "cors.json");
         properties.put(JwtTokenProperties.class, "jwt-token.json");
         properties.put(DatabaseProperties.class, "database.json");
+        properties.put(EmailProperties.class, "emails.json");
         loader.registerProperties(properties);
     }
 

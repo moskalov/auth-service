@@ -6,7 +6,7 @@ import lv.redsails.authservice.domain.Role;
 import lv.redsails.authservice.domain.User;
 import lv.redsails.authservice.model.request.RegistrationRequestBody;
 import lv.redsails.authservice.event.RegistrationCompleteEvent;
-import lv.redsails.authservice.exception.UserAlreadyExistException;
+import lv.redsails.authservice.exception.registration.EmailUsedException;
 import lv.redsails.authservice.repository.RoleRepository;
 import lv.redsails.authservice.repository.UserRepository;
 import lv.redsails.authservice.security.model.PasswordEncoder;
@@ -64,7 +64,7 @@ class RegistrationServiceImplTest {
         RegistrationRequestBody regRequestBody = getRandomRegistrationRequest();
         when(userRepository.findByEmail(regRequestBody.getEmail())).thenReturn(Optional.of(new User()));
 
-        Exception exception = assertThrows(UserAlreadyExistException.class, () -> {
+        Exception exception = assertThrows(EmailUsedException.class, () -> {
             registrationService.registerUserAccount(regRequestBody);
         });
 

@@ -1,0 +1,12 @@
+{
+  "password_reset": {
+    "subject": "Password Reset",
+    "from": "no-reply@mtracker.com",
+    "html_template_path": "./templates/password_reset.html"
+  },
+  "email_confirmation": {
+    "subject": "Email Confirmation",
+    "from": "no-reply@mtracker.com",
+    "html_template_path": "./templates/email_confirmation.html"
+  }
+}

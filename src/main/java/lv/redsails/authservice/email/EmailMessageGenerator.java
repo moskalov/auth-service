@@ -1,40 +1,53 @@
 package lv.redsails.authservice.email;
 
+import lombok.Setter;
 import lombok.SneakyThrows;
-import lv.redsails.authservice.email.message.ConfirmEmailMessage;
+import lombok.experimental.Accessors;
+import lv.redsails.authservice.email.message.EmailConfirmMessage;
 import lv.redsails.authservice.email.message.PasswordResetMessage;
 import lv.redsails.authservice.utils.ResourcesReader;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
-import org.springframework.stereotype.Component;
 
 import javax.mail.internet.MimeMessage;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
-@Component
+@Accessors(chain = true)
 public class EmailMessageGenerator {
 
-    private final String emailConfirmTemplate;
-    private final String passwordResetTemplate;
+    private final EmailOptions emailConfirmation;
+    private final EmailOptions passwordReset;
 
-    @SneakyThrows
-    public EmailMessageGenerator() {
-        emailConfirmTemplate = ResourcesReader.getResourceFileAsString("mail/email_confirmation.html");
-        passwordResetTemplate = ResourcesReader.getResourceFileAsString("mail/password_reset.html");
+    private String emailConfirmTemplate;
+    private String passwordResetTemplate;
+
+    public EmailMessageGenerator(EmailOptions emailConfirmation, EmailOptions passwordReset) {
+        this.passwordReset = passwordReset;
+        this.emailConfirmation = emailConfirmation;
+        readTemplates();
     }
 
     @SneakyThrows
-    public ConfirmEmailMessage generateEmailConfirmationMessage(JavaMailSender mailSender) {
+    private void readTemplates() {
+        emailConfirmTemplate = Files.readString(Path.of(emailConfirmation.getTemplatePath()));
+        passwordResetTemplate = Files.readString(Path.of(passwordReset.getTemplatePath()));
+    }
+
+    @SneakyThrows
+    public EmailConfirmMessage generateEmailConfirmationMessage(JavaMailSender mailSender) {
         MimeMessageHelper messageHelper = getMessageHelper(mailSender);
-        messageHelper.setFrom("no-reply@mtracker.com");
-        messageHelper.setSubject("Email Confirmation");
-        return new ConfirmEmailMessage(messageHelper, emailConfirmTemplate);
+        messageHelper.setFrom(emailConfirmation.getFrom());
+        messageHelper.setSubject(emailConfirmation.getSubject());
+        return new EmailConfirmMessage(messageHelper, emailConfirmTemplate);
     }
 
     @SneakyThrows
     public PasswordResetMessage generatePasswordResetMessage(JavaMailSender mailSender) {
         MimeMessageHelper messageHelper = getMessageHelper(mailSender);
-        messageHelper.setFrom("no-reply@mtracker.com");
-        messageHelper.setSubject("Password Reset");
+        messageHelper.setFrom(passwordReset.getFrom());
+        messageHelper.setSubject(passwordReset.getSubject());
         return new PasswordResetMessage(messageHelper, passwordResetTemplate);
     }
 
@@ -42,6 +55,5 @@ public class EmailMessageGenerator {
         MimeMessage message = mailSender.createMimeMessage();
         return new MimeMessageHelper(message, "utf-8");
     }
-
 
 }

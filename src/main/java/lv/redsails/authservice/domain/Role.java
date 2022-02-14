@@ -5,7 +5,6 @@ import lombok.*;
 import lombok.experimental.Accessors;
 
 import javax.persistence.*;
-
 import java.util.Objects;
 
 import static javax.persistence.GenerationType.*;
@@ -14,12 +13,12 @@ import static javax.persistence.GenerationType.*;
 @Getter
 @Setter
 @ToString
+@AllArgsConstructor
+@NoArgsConstructor
 @Accessors(chain = true)
 
 @Entity
 @Table(name = "role")
-@AllArgsConstructor
-@NoArgsConstructor
 public class Role {
 
     @Id

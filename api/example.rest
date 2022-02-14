@@ -3,26 +3,45 @@ POST http://localhost:8082/api/v1/client/sign-in
 Content-Type: application/json
 
 {
-  "email": "qmoskalov.a@gmail.com",
-  "password": "password"
+  "email": "admin",
+  "password": "admin"
 }
 
 ### Authentication by refresh token
-POST http://localhost:8082/api/v1/client/sign-up
+POST http://localhost:8082/api/v1/client/register
 Content-Type: application/json
 
 {
   "firstName": "Artem",
   "lastName": "Moskalov",
-  "email": "qmoskalov@gmail.com",
+  "email": "email.a@gmail.com",
   "password": "password",
-  "emailConfirmUrl": "http://localhost:3000/email/confirmation"
+  "emailConfirmUrl": "http://localhost:3000/email/confirmationnn"
 }
+
+### Sign-out // security
+GET http://localhost:8082/api/v1/client/confirmation/email?token=2e0c4382-938c-8ebd-b9b9-12c71776a9cc
 
 ### Sign-out
 GET http://localhost:8082/api/v1/client/sign-out
 Content-Type: application/json
 
+
+
 ### Sign-out // security
-GET http://localhost:8082/api/v1/client/emails/confirmation?token=63a6044e-15bf-4149-a9df-13ff81f0bbe2
+POST http://localhost:8082/api/v1/client/forgot-password
 Content-Type: application/json
+
+{
+  "email": "email.aa@gmail.com",
+  "resetUrl": "http://localhost:3000/password-reset/"
+}
+
+### Sign-out // security
+PUT http://localhost:8082/api/v1/client/reset-password
+Content-Type: application/json
+
+{
+  "token": "2d5bf5df-00ac-48eb-8a73-5ec61768efb2",
+  "password": "new_password"
+}

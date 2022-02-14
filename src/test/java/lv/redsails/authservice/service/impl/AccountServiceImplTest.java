@@ -3,19 +3,18 @@ package lv.redsails.authservice.service.impl;
 import com.github.javafaker.Faker;
 import lv.redsails.authservice.domain.ConfirmationToken;
 import lv.redsails.authservice.domain.User;
-import lv.redsails.authservice.exception.authentication.ConfirmationTokenExpired;
+import lv.redsails.authservice.exception.token.TokenNotValidException;
 import lv.redsails.authservice.repository.ConfirmationTokenRepository;
 import lv.redsails.authservice.repository.UserRepository;
 import lv.redsails.authservice.security.model.PasswordEncoder;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.security.authentication.DisabledException;
 
-import javax.persistence.EntityNotFoundException;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
@@ -45,10 +44,8 @@ class AccountServiceImplTest {
 
     }
 
-    // confirmEmailByToken
-
     @Test
-    void shouldActivateUserIfTokenValid() {
+    void shouldActivateUserAfterEmailConfirmation() {
         ConfirmationToken token = generateRandomConfirmationToken();
         when(tokenRepository.findByToken(token.getToken())).thenReturn(Optional.of(token));
         accountService.confirmEmailByToken(token.getToken());
@@ -57,33 +54,49 @@ class AccountServiceImplTest {
     }
 
     @Test
-    void shouldThrowExceptionIfTokenExpired() {
+    void shouldThrowExceptionWhileEmailConfirmationIfTokenAlreadyUsed() {
         ConfirmationToken token = generateRandomConfirmationToken();
-        token.setExpiresAt(LocalDateTime.now().minusHours(20));
+        token.setConfirmedAt(LocalDateTime.now());
 
         when(tokenRepository.findByToken(token.getToken())).thenReturn(Optional.of(token));
-        Exception exception = assertThrows(ConfirmationTokenExpired.class, () -> {
-            accountService.confirmEmailByToken(token.getToken());
+        Exception exception = assertThrows(Exception.class, () -> {
+            String tokenValue = token.getToken();
+            accountService.confirmEmailByToken(tokenValue);
         });
 
-        assertEquals(exception.getClass(), ConfirmationTokenExpired.class);
-        assertEquals("Token has been expired", exception.getMessage());
+        assertEquals(exception.getClass(), TokenNotValidException.class);
+        assertEquals("TOKEN_USED", exception.getMessage());
     }
 
     @Test
-    void shouldThrowExceptionIfTokenNotExist() {
+    void shouldThrowExceptionWhileEmailConfirmationIfTokenExpired() {
+        ConfirmationToken token = generateRandomConfirmationToken();
+        token.setExpiresAt(LocalDateTime.now().minusHours(20));
+        when(tokenRepository.findByToken(token.getToken())).thenReturn(Optional.of(token));
+
+        Exception exception = assertThrows(TokenNotValidException.class, () -> {
+            String tokenValue = token.getToken();
+            accountService.confirmEmailByToken(tokenValue);
+        });
+
+        assertEquals(exception.getClass(), TokenNotValidException.class);
+        assertEquals("TOKEN_EXPIRED", exception.getMessage());
+    }
+
+    @Test
+    void shouldThrowExceptionWhileEmailConfirmationIfTokenNotExist() {
+        String notExistedToken = UUID.randomUUID().toString();
         when(tokenRepository.findByToken(anyString())).thenReturn(Optional.empty());
         Exception exception = assertThrows(Exception.class, () -> {
-            accountService.confirmEmailByToken("not exist token");
+            accountService.confirmEmailByToken(notExistedToken);
         });
 
-        assertEquals(exception.getClass(), EntityNotFoundException.class);
+        assertEquals(exception.getClass(), TokenNotValidException.class);
     }
 
-    // confirm password reset
 
     @Test
-    void shouldChangeUserPasswordWhenTokenIsExistAndNotExpired() {
+    void shouldChangeUserPasswordWhilePasswordReset() {
         ConfirmationToken token = generateRandomConfirmationToken();
         String passwordBefore = token.getUser().getPassword();
 
@@ -99,7 +112,7 @@ class AccountServiceImplTest {
     }
 
     @Test
-    void shouldSaveNewEncodedPassword() {
+    void shouldSaveEncodedPasswordWhilePasswordReset() {
         ConfirmationToken token = generateRandomConfirmationToken();
         String newRawPassword = faker.pokemon().name();
 
@@ -125,11 +138,25 @@ class AccountServiceImplTest {
             accountService.confirmPasswordReset(newRawPassword, token.getToken());
         });
 
-        assertEquals(ConfirmationTokenExpired.class, exception.getClass());
+        assertEquals(TokenNotValidException.class, exception.getClass());
     }
 
     @Test
-    void shouldThrowExceptionIfTokenNotFound() {
+    void shouldThrowExceptionIfAccountIsNotActivatedWhilePasswordChange() {
+        User user = generateRandomUser().setEnabled(false);
+        String fakeEmail = faker.internet().emailAddress();
+
+        when(userRepository.findByEmail(fakeEmail)).thenReturn(Optional.of(user));
+        Exception exception = assertThrows(Exception.class, () -> {
+            accountService.sendPasswordResetEmail(fakeEmail, "");
+        });
+
+        assertEquals(DisabledException.class, exception.getClass());
+        assertEquals(exception.getMessage(), "USER_INACTIVE");
+    }
+
+    @Test
+    void shouldThrowExceptionWhilePasswordResetIfTokenNotFound() {
         ConfirmationToken token = generateRandomConfirmationToken();
         token.setExpiresAt(LocalDateTime.now().minusHours(20));
 
@@ -139,7 +166,7 @@ class AccountServiceImplTest {
         Exception exception = assertThrows(Exception.class, () ->
                 accountService.confirmPasswordReset(newRawPassword, token.getToken()));
 
-        assertEquals(ConfirmationTokenExpired.class, exception.getClass());
+        assertEquals(TokenNotValidException.class, exception.getClass());
     }
 
     private ConfirmationToken generateRandomConfirmationToken() {

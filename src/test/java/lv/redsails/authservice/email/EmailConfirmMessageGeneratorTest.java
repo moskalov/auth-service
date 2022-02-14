@@ -22,8 +22,8 @@ import java.util.UUID;
 import static javax.mail.Message.*;
 
 @ExtendWith(MockitoExtension.class)
-class ConfirmEmailMessageGeneratorTest {
-    EmailMessageGenerator emailMessageGenerator = new EmailMessageGenerator();
+class EmailConfirmMessageGeneratorTest {
+    EmailMessageGenerator emailMessageGenerator = new EmailMessageGenerator(null, null);
     JavaMailSender mailSender = new JavaMailSenderImpl();
 
     Faker faker = new Faker();

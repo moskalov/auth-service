@@ -5,7 +5,7 @@ import lv.redsails.authservice.domain.Role;
 import lv.redsails.authservice.domain.User;
 import lv.redsails.authservice.model.request.RegistrationRequestBody;
 import lv.redsails.authservice.event.RegistrationCompleteEvent;
-import lv.redsails.authservice.exception.UserAlreadyExistException;
+import lv.redsails.authservice.exception.registration.EmailUsedException;
 import lv.redsails.authservice.repository.RoleRepository;
 import lv.redsails.authservice.repository.UserRepository;
 import lv.redsails.authservice.security.model.PasswordEncoder;
@@ -37,13 +37,9 @@ public class RegistrationServiceImpl implements RegistrationService {
         return nonActivatedUser;
     }
 
-    private void publishRegistrationCompleteEvent(RegistrationRequestBody registration, User user) {
-        eventPublisher.publishEvent(new RegistrationCompleteEvent(this, user, registration));
-    }
-
     private void throwIfEmailAlreadyExist(String email) {
         Optional<User> optionalUser = userRepository.findByEmail(email);
-        if (optionalUser.isPresent()) throw new UserAlreadyExistException("Email already exist");
+        if (optionalUser.isPresent()) throw new EmailUsedException();
     }
 
     private User createNewUser(RegistrationRequestBody credentials) {
@@ -56,6 +52,10 @@ public class RegistrationServiceImpl implements RegistrationService {
                 .setPassword(encodedPassword)
                 .setRoles(defaultRoles)
                 .setUid(externalUid);
+    }
+
+    private void publishRegistrationCompleteEvent(RegistrationRequestBody registration, User user) {
+        eventPublisher.publishEvent(new RegistrationCompleteEvent(this, user, registration));
     }
 
 }

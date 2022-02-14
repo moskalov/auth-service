@@ -1,5 +1,5 @@
 {
-  "username": "username",
-  "password": "password",
+  "username": "developer-01",
+  "password": "insertF12MAS",
   "url": "mysql://127.0.0.1:3306/auth"
 }

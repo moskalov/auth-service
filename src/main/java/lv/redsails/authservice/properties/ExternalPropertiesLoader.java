@@ -1,5 +1,6 @@
 package lv.redsails.authservice.properties;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.SneakyThrows;
 
@@ -11,7 +12,7 @@ import java.util.HashMap;
 public class ExternalPropertiesLoader {
 
     private final Path configFolder;
-    public HashMap<Class<?>, String> properties = new HashMap<>();
+    private HashMap<Class<?>, String> properties = new HashMap<>();
 
     public ExternalPropertiesLoader(String rootFolder, HashMap<Class<?>, String> properties) {
         this.configFolder = Path.of(rootFolder);
